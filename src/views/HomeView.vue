@@ -1,18 +1,44 @@
 <template>
   <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png" />
-    <HelloWorld msg="Welcome to Your Vue.js + TypeScript App" />
+    <div>
+      <HomeLoggedIn v-if="isLoggedIn" />
+      <HomeLoggedOut v-else @is-logged-in-changed="setIsLoggedIn" />
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
-import HelloWorld from "@/components/HelloWorld.vue"; // @ is an alias to /src
+import { defineComponent, ref } from "vue";
+import HomeLoggedIn from "@/components/HomeLoggedIn.vue";
+import HomeLoggedOut from "@/components/HomeLoggedOut.vue";
+
+import { rid } from "@/rethinkid";
 
 export default defineComponent({
   name: "HomeView",
   components: {
-    HelloWorld,
+    HomeLoggedIn,
+    HomeLoggedOut,
+  },
+  setup() {
+    const isLoggedIn = ref(rid.isLoggedIn());
+
+    function setIsLoggedIn(state: boolean) {
+      isLoggedIn.value = state;
+    }
+
+    return { isLoggedIn, setIsLoggedIn };
   },
 });
 </script>
+
+<style lang="scss">
+.home {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+
+  height: 100vh;
+  padding: 1em;
+}
+</style>

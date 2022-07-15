@@ -1,26 +1,38 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import HomeView from "../views/HomeView.vue";
+import GameView from "../views/GameView.vue";
+import { rid } from "@/rethinkid";
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
     name: "home",
     component: HomeView,
+    meta: { requiresAuth: false },
   },
   {
-    path: "/about",
-    name: "about",
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () =>
-      import(/* webpackChunkName: "about" */ "../views/AboutView.vue"),
+    path: "/:userId/:gameId",
+    name: "game",
+    component: GameView,
   },
 ];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  // If route requires auth
+  if (to.matched.some((record) => record.meta.requiresAuth !== false)) {
+    if (!rid.isLoggedIn()) {
+      // Redirect to the sign in view if no token found and route requires auth
+      next({ name: "home" });
+      return;
+    }
+  }
+
+  next();
 });
 
 export default router;
