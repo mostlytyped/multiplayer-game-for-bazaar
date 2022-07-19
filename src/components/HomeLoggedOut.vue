@@ -1,5 +1,14 @@
 <template>
-  <a class="button" :href="loginUri">Commence space exploration</a>
+  <div>
+    <a class="button" :href="redirectLoginUri"
+      >Commence space exploration (redirect)</a
+    >
+  </div>
+  <div>
+    <button class="button" @click="openLoginPopUp">
+      Commence space exploration (pop-up)
+    </button>
+  </div>
 </template>
 
 <script lang="ts">
@@ -10,19 +19,30 @@ import { rid } from "@/rethinkid";
 
 export default defineComponent({
   name: "HomeLoggedOut",
+  emits: ["isLoggedInChanged"],
   setup(props, { emit }) {
     const router = useRouter();
 
-    let loginUri = ref("");
+    let redirectLoginUri = ref("");
+
+    function openLoginPopUp() {
+      rid.openLoginPopUp(() => {
+        console.log(
+          "received pop up login complete message event, set logged in true, push to home"
+        );
+        emit("isLoggedInChanged", true);
+        router.push({ name: "home" });
+      });
+    }
 
     rid
       .loginUri()
-      .then((uri) => (loginUri.value = uri))
+      .then((uri) => (redirectLoginUri.value = uri))
       .catch((e) => console.error(e.message));
 
     useCompleteLogin(emit, router);
 
-    return { loginUri };
+    return { redirectLoginUri, openLoginPopUp };
   },
 });
 </script>
