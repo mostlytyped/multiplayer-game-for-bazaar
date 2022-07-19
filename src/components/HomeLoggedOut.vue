@@ -40,7 +40,7 @@ export default defineComponent({
       .then((uri) => (redirectLoginUri.value = uri))
       .catch((e) => console.error(e.message));
 
-    useCompleteLogin(emit, router);
+    useCompleteLogin();
 
     return { redirectLoginUri, openLoginPopUp };
   },

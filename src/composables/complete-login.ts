@@ -1,7 +1,8 @@
 import { rid } from "@/rethinkid";
 
 // Handle login completion
-export function useCompleteLogin(emit: any, router: any) {
+// emit: any, router: any
+export function useCompleteLogin() {
   if (rid.isLoggingIn()) {
     // redirect login
     // rid
