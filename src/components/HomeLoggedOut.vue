@@ -27,22 +27,20 @@ export default defineComponent({
 
     let loginUri = ref("");
 
-    // Get the login URI
-    rid
-      .loginUri()
-      .then((uri: string) => (loginUri.value = uri))
-      .catch((e: any) => console.error(e.message));
-
-    // Complete login callback
-    const completeLoginCallback = () => {
+    // After login callback
+    const afterLoginCallback = () => {
       emit("isLoggedInChanged", true);
       router.push({ name: "home" });
     };
 
-    // Complete login
+    // Get the login URI
     rid
-      .completeLogin(completeLoginCallback)
+      .loginUri(afterLoginCallback)
+      .then((uri: string) => (loginUri.value = uri))
       .catch((e: any) => console.error(e.message));
+
+    // Complete login
+    rid.completeLogin().catch((e: any) => console.error(e.message));
 
     function openLoginPopUp(event: Event) {
       rid.openLoginPopUp(loginUri.value, event);
