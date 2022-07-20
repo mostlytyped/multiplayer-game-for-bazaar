@@ -3,11 +3,6 @@
   <div v-else-if="!loginUri">Loading...</div>
   <template v-else>
     <div>
-      <a class="button" :href="loginUri"
-        >Commence space exploration (redirect)</a
-      >
-    </div>
-    <div>
       <a class="button" :href="loginUri" @click="openLoginPopUp"
         >Commence space exploration (redirect/pop-up)</a
       >
