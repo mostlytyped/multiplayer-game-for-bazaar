@@ -1,20 +1,22 @@
 <template>
-  <div>
-    <a class="button" :href="redirectLoginUri"
-      >Commence space exploration (redirect)</a
-    >
-  </div>
-  <div>
-    <button class="button" @click="openLoginPopUp">
-      Commence space exploration (pop-up)
-    </button>
-  </div>
+  <div v-if="!loginUri">Loading...</div>
+  <template v-else>
+    <div>
+      <a class="button" :href="loginUri"
+        >Commence space exploration (redirect)</a
+      >
+    </div>
+    <div>
+      <a class="button" :href="loginUri" @click="openLoginPopUp"
+        >Commence space exploration (redirect/pop-up)</a
+      >
+    </div>
+  </template>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 import { useRouter } from "vue-router";
-import { useCompleteLogin } from "@/composables/complete-login";
 import { rid } from "@/rethinkid";
 
 export default defineComponent({
@@ -23,26 +25,30 @@ export default defineComponent({
   setup(props, { emit }) {
     const router = useRouter();
 
-    let redirectLoginUri = ref("");
+    let loginUri = ref("");
 
-    function openLoginPopUp() {
-      rid.openLoginPopUp(() => {
-        console.log(
-          "received pop up login complete message event, set logged in true, push to home"
-        );
-        emit("isLoggedInChanged", true);
-        router.push({ name: "home" });
-      });
-    }
-
+    // Get the login URI
     rid
       .loginUri()
-      .then((uri) => (redirectLoginUri.value = uri))
-      .catch((e) => console.error(e.message));
+      .then((uri: string) => (loginUri.value = uri))
+      .catch((e: any) => console.error(e.message));
 
-    useCompleteLogin();
+    // Complete login callback
+    const completeLoginCallback = () => {
+      emit("isLoggedInChanged", true);
+      router.push({ name: "home" });
+    };
 
-    return { redirectLoginUri, openLoginPopUp };
+    // Complete login
+    rid
+      .completeLogin(completeLoginCallback)
+      .catch((e: any) => console.error(e.message));
+
+    function openLoginPopUp(event: Event) {
+      rid.openLoginPopUp(loginUri.value, event);
+    }
+
+    return { loginUri, openLoginPopUp };
   },
 });
 </script>
