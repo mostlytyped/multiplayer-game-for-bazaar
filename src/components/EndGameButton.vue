@@ -31,16 +31,6 @@ export default defineComponent({
         })
         .catch((e) => console.error(e.message)) // maybe one or more tables already deleted
         .finally(() => router.push({ name: "home" })); // either way, safest bet just go home
-
-      // rid
-      //   .tableDelete(gameTableName, { rowId: gameId, userId: gameUserId })
-      //   .catch((e) => console.error(e.message)) // maybe table already deleted
-      //   .finally(() => router.push({ name: "home" })); // either way, safest bet just go home
-
-      // rid
-      //   .tableDelete(playersTableName, { rowId: gameId, userId: gameUserId })
-      //   .catch((e) => console.error(e.message)) // maybe table already deleted
-      //   .finally(() => router.push({ name: "home" })); // either way, safest bet just go home
     }
 
     return { endGame };

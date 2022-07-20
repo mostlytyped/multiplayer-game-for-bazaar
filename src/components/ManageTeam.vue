@@ -32,6 +32,11 @@ import { useTeam, useGetTeam } from "@/composables/team";
 import { getGameTableName, getPlayersTableName } from "@/utils";
 import { useGetStringFromParam } from "@/composables/router-params";
 
+import {
+  Permission,
+  PermissionType,
+} from "@mostlytyped/rethinkid-js-sdk/dist/types/types";
+
 export default defineComponent({
   name: "ManageTeam",
   setup() {
@@ -64,8 +69,13 @@ export default defineComponent({
        * userId: string;
        * type: 'read', 'insert', 'update', 'delete';
        */
-      const permissions = [];
-      const permissionTypes = ["read", "insert", "update", "delete"];
+      const permissions: Permission[] = [];
+      const permissionTypes: PermissionType[] = [
+        "read",
+        "insert",
+        "update",
+        "delete",
+      ];
 
       // Giving everyone added all permissions for the games and players tables for convenience.
 
@@ -88,7 +98,6 @@ export default defineComponent({
       }
 
       rid
-        // @ts-ignore because the SDK types are wrong
         .permissionsSet(permissions)
         .then(() => useGetTeam(gameId)) // need to fetch, haven't got permission ID to add, not returned by API
         .catch((e) => console.error(e.message))

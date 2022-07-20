@@ -6,6 +6,8 @@ Multiple players can join and move a character in one direction.
 
 ## Project setup
 
+Need to authenticate to GitHub packages for `npm install`. e.g. `export NPM_TOKEN=<github auth token>`, or comment out `//npm.pkg.github.com/:_authToken=${NPM_TOKEN} ` in `.npmrc` if you have a key set on your machine.
+
 ```
 npm install
 ```
