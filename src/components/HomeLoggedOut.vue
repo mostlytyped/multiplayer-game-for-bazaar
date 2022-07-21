@@ -34,13 +34,20 @@ export default defineComponent({
     rid
       .completeLogin()
       .then((response) => {
-        popUpLoginCompleteMsg.value = response;
+        if (response === "popup") {
+          popUpLoginCompleteMsg.value =
+            "Login successful. This tab can now be closed";
+          return;
+        }
+        if (response === "redirect") {
+          afterLoginCallback();
+        }
       })
       .catch((e: any) => console.error(e.message));
 
     function login() {
       rid.login({
-        type: "popup_fallback",
+        type: "redirect",
         callback: afterLoginCallback,
       });
     }
