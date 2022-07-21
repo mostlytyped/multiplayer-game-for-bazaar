@@ -1,11 +1,8 @@
 <template>
   <div v-if="popUpLoginCompleteMsg">{{ popUpLoginCompleteMsg }}</div>
-  <div v-else-if="!loginUri">Loading...</div>
   <template v-else>
     <div>
-      <a class="button" :href="loginUri" @click="openLoginPopUp"
-        >Commence space exploration (redirect/pop-up)</a
-      >
+      <button @click="login" class="button">Commence space exploration</button>
     </div>
   </template>
 </template>
@@ -21,8 +18,6 @@ export default defineComponent({
   setup(props, { emit }) {
     const router = useRouter();
 
-    let loginUri = ref("");
-
     // At least on Brave iOS closing a pop-up fails.
     // The pop-up staying open is confusing, so at least
     // show a message explaining login succeeded and the window
@@ -35,12 +30,6 @@ export default defineComponent({
       router.push({ name: "home" });
     };
 
-    // Get the login URI
-    rid
-      .loginUri(afterLoginCallback)
-      .then((uri: string) => (loginUri.value = uri))
-      .catch((e: any) => console.error(e.message));
-
     // Complete login
     rid
       .completeLogin()
@@ -49,11 +38,14 @@ export default defineComponent({
       })
       .catch((e: any) => console.error(e.message));
 
-    function openLoginPopUp(event: Event) {
-      rid.openLoginPopUp(loginUri.value, event);
+    function login() {
+      rid.login({
+        type: "popup_fallback",
+        callback: afterLoginCallback,
+      });
     }
 
-    return { loginUri, popUpLoginCompleteMsg, openLoginPopUp };
+    return { login, popUpLoginCompleteMsg };
   },
 });
 </script>
