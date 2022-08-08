@@ -25,7 +25,7 @@ export default defineComponent({
     let popUpLoginCompleteMsg = ref("");
 
     // After login callback
-    const afterLoginCallback = () => {
+    rid.onLoginCallback = () => {
       emit("isLoggedInChanged", true);
       router.push({ name: "home" });
     };
@@ -39,16 +39,12 @@ export default defineComponent({
             "Login successful. This tab can now be closed";
           return;
         }
-        if (response === "redirect") {
-          afterLoginCallback();
-        }
       })
       .catch((e: any) => console.error(e.message));
 
     function login() {
       rid.login({
         type: "redirect",
-        callback: afterLoginCallback,
       });
     }
 
