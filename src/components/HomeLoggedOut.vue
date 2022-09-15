@@ -25,27 +25,16 @@ export default defineComponent({
     let popUpLoginCompleteMsg = ref("");
 
     // After login callback
-    rid.onLoginCallback = () => {
+    rid.onLogin = () => {
       emit("isLoggedInChanged", true);
       router.push({ name: "home" });
     };
 
-    // Complete login
-    rid
-      .completeLogin()
-      .then((response) => {
-        if (response === "popup") {
-          popUpLoginCompleteMsg.value =
-            "Login successful. This tab can now be closed";
-          return;
-        }
-      })
-      .catch((e: any) => console.error(e.message));
-
     function login() {
-      rid.login({
-        type: "redirect",
-      });
+      rid.login();
+      // rid.login({ type: "popup_fallback" });
+      // rid.login({ type: "redirect" });
+      // rid.login({ type: "popup" });
     }
 
     return { login, popUpLoginCompleteMsg };
