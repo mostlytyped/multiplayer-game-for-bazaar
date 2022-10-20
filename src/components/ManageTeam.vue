@@ -29,8 +29,8 @@ import { defineComponent, ref } from "vue";
 import { useRoute } from "vue-router";
 import { rid } from "@/rethinkid";
 import { useTeam, useGetTeam } from "@/composables/team";
-import { getGameTableName, getPlayersTableName } from "@/utils";
 import { useGetStringFromParam } from "@/composables/router-params";
+import { GAME_TABLE_NAME } from "@/constants";
 
 import {
   Permission,
@@ -63,12 +63,6 @@ export default defineComponent({
 
       addToTeamText.value = "Adding...";
 
-      /**
-       * id: string; // if updating
-       * tableName: string;
-       * userId: string;
-       * type: 'read', 'insert', 'update', 'delete';
-       */
       const permissions: Permission[] = [];
       const permissionTypes: PermissionType[] = [
         "read",
@@ -77,29 +71,40 @@ export default defineComponent({
         "delete",
       ];
 
-      // Giving everyone added all permissions for the games and players tables for convenience.
+      // Giving everyone all permissions for the games table for convenience.
 
       // Adding to game table, not game doc
       for (const type of permissionTypes) {
         permissions.push({
-          tableName: getGameTableName(gameId),
+          tableName: GAME_TABLE_NAME,
           userId: newPlayerId.value,
           type,
         });
+
+        // permissions.push({
+        //   tableName: getGameTableName(gameId),
+        //   userId: "*",
+        //   type,
+        //   condition: {
+        //     matchUserId: newPlayerId.value,
+        //   },
+        // });
       }
 
       // Adding to players table, not player doc
-      for (const type of permissionTypes) {
-        permissions.push({
-          tableName: getPlayersTableName(gameId),
-          userId: newPlayerId.value,
-          type,
-        });
-      }
+      // for (const type of permissionTypes) {
+      //   permissions.push({
+      //     tableName: getPlayersTableName(gameId),
+      //     userId: newPlayerId.value,
+      //     type,
+      //   });
+      // }
 
       rid
         .permissionsSet(permissions)
-        .then(() => useGetTeam(gameId)) // need to fetch, haven't got permission ID to add, not returned by API
+        .then(() => {
+          console.log("set permissions");
+        }) // TODO should now be able to add returned ID, no longer need to fetch
         .catch((e) => console.error(e.message))
         .finally(() => {
           addToTeamText.value = addToTeamTextInitial;

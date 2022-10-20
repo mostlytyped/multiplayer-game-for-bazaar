@@ -1,11 +1,11 @@
 <template>
-  <div v-if="gameIds.length > 0" class="my-games card">
+  <div v-if="games.length > 0" class="my-games card">
     <h2>My Games</h2>
     <ul class="my-games-list">
-      <li v-for="gameId in gameIds" :key="gameId">
+      <li v-for="game in games" :key="game.id">
         <router-link
-          :to="{ name: 'game', params: { userId: myId, gameId: gameId } }"
-          >{{ gameId }}</router-link
+          :to="{ name: 'game', params: { userId: myId, gameId: game.id } }"
+          >{{ game.name }}</router-link
         >
       </li>
     </ul>
@@ -16,29 +16,27 @@
 import { defineComponent, ref } from "vue";
 import { rid } from "@/rethinkid";
 import { getMyId } from "@/utils";
-import { GAME_TABLE_SUFFIX } from "@/constants";
+import { GAME_TABLE_NAME } from "@/constants";
 
 export default defineComponent({
   name: "MyGames",
   setup() {
-    let gameIds: any = ref([]);
+    let games: any = ref([]);
 
     const myId = getMyId();
 
-    rid
-      .tablesList()
+    const createOn = async () => console.log("create on fired");
+    const gamesTable = rid.table(GAME_TABLE_NAME, createOn);
+
+    gamesTable
+      .read()
       .then((response: any) => {
-        for (const dbName of response.data) {
-          if (dbName.endsWith(GAME_TABLE_SUFFIX)) {
-            const endIndex = dbName.length - GAME_TABLE_SUFFIX.length;
-            const gameId = dbName.slice(0, endIndex);
-            gameIds.value.push(gameId);
-          }
-        }
+        console.log("response read games", response);
+        games.value = response.data;
       })
       .catch((e) => console.error(e.message));
 
-    return { gameIds, myId };
+    return { games, myId };
   },
 });
 </script>

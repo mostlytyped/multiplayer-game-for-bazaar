@@ -11,13 +11,13 @@
         </div>
         <GameCreatorDash
           v-if="useAmGameCreator"
-          :players="players"
+          :players="game.players"
           @start-game="setGameOn(true)"
         />
       </template>
 
       <GamePlayer
-        v-for="player of players"
+        v-for="player of game.players"
         :key="player.id"
         :player="player"
         :class="{ 'is-semi-transparent': !game.gameOn }"
@@ -38,14 +38,14 @@
       Pause Game
     </button>
     <router-link class="button is-small-text" :to="{ name: 'home' }"
-      >Quit Game</router-link
+      >Leave Game</router-link
     >
     <EndGameButton v-if="useAmGameCreator" />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, Ref, watch, onUnmounted } from "vue";
+import { defineComponent, reactive, ref, watch, onUnmounted } from "vue";
 import GamePlayer from "@/components/GamePlayer.vue";
 import EndGameButton from "@/components/EndGameButton.vue";
 import HowToJoinGame from "@/components/HowToJoinGame.vue";
@@ -55,12 +55,8 @@ import { useAmGameCreator } from "@/composables/game-roles";
 import {
   useInitPlayer,
   usePlayerExistsInState,
-  useUpdatePlayerInState,
 } from "@/composables/game-setup";
-import {
-  useRemoveMe,
-  useRemovePlayerFromState,
-} from "@/composables/game-teardown";
+import { useRemoveMe } from "@/composables/game-teardown";
 import {
   startGameEngine,
   stopGameEngine,
@@ -68,9 +64,9 @@ import {
 } from "@/composables/game-engine";
 import { rid } from "@/rethinkid";
 import { useRoute } from "vue-router";
-import { NO_READ_PERMISSIONS, NO_TABLE_REGEX } from "@/constants";
+import { GAME_TABLE_NAME, NO_READ_PERMISSIONS } from "@/constants";
 import { Game, Player } from "@/types";
-import { getMyId, getGameTableName, getPlayersTableName } from "@/utils";
+import { getMyId } from "@/utils";
 
 export default defineComponent({
   name: "GameView",
@@ -89,53 +85,70 @@ export default defineComponent({
     const gameReady = ref(false);
     const game: Game = reactive({
       id: "",
+      name: "",
       gameOn: false,
+      players: [],
     });
-    const players: Ref<Player[]> = ref([]);
 
     const gameId = useGetStringFromParam(route.params.gameId);
     const gameUserId = useGetStringFromParam(route.params.userId);
 
-    const playersTableName = getPlayersTableName(gameId);
-    const gameTableName = getGameTableName(gameId);
+    if (getMyId() === route.params.userId) {
+      console.log("I am the game owner");
+    } else {
+      console.log("I am a guest in this game");
+    }
 
-    // Get players, add me as player, get game...
-    rid
-      .tableRead(playersTableName, { userId: gameUserId })
+    const onCreateGame = async () => {
+      console.log("onCreate game table in GameView fired");
+    };
+    const gameTable = rid.table(GAME_TABLE_NAME, onCreateGame, {
+      userId: gameUserId,
+    });
+
+    console.log("Get game");
+
+    gameTable
+      .read({ rowId: gameId })
       .then((response: any) => {
+        console.log("got game", response);
+
         error.value = false;
 
         // I might not have created this game, but if I can read from it I've been
         // granted permissions, and so am a team member.
         amTeamMember.value = true;
 
-        players.value = response.data;
-      })
-      .catch((e) => {
-        if (e.message.match(NO_TABLE_REGEX)) {
-          console.log("Players table does not exist, create it");
-          return rid.tablesCreate(playersTableName);
-        }
+        console.log("game before", game);
+        Object.assign(game, response.data);
+        console.log("game after", game);
 
-        throw e;
-      })
-      .then(() => {
+        // if (response.data.players) {
+        //   game.players = response.data.players;
+        // }
+
         // Don't re-add me
-        if (usePlayerExistsInState(players.value, getMyId())) {
-          console.log("I am already a player");
-          return;
+        if (!usePlayerExistsInState(game.players, getMyId())) {
+          console.log("I'm not a player, so add me as a player");
+
+          // Add me as a player
+          const me: Player = useInitPlayer(game.players);
+
+          // Add me to local state
+          game.players.push(me);
+
+          // Add me to database
+          gameTable
+            .update({ id: gameId, players: game.players })
+            .then((response) => {
+              console.log("update response", response);
+
+              gameTable.read({ rowId: gameId }).then((response: any) => {
+                console.log("read after update", response);
+              });
+              //
+            });
         }
-
-        console.log("Add me as a player");
-
-        // Add me as a player
-        const me: Player = useInitPlayer(players.value);
-
-        // Add me to local state
-        players.value.push(me);
-
-        // Add me to database
-        return rid.tableInsert(playersTableName, me, { userId: gameUserId });
       })
       .catch((e) => {
         console.error(e.message);
@@ -148,129 +161,98 @@ export default defineComponent({
         }
       })
       .finally(() => {
-        if (!error.value) {
-          console.log("Finished player setup");
-          getGame();
-        }
+        loading.value = false;
+        gameReady.value = true;
       });
-
-    function getGame() {
-      console.log("Get game");
-
-      rid
-        .tableRead(gameTableName, { rowId: gameId, userId: gameUserId })
-        .then((response: any) => {
-          error.value = false;
-          Object.assign(game, response.data);
-        })
-        .catch((e) => console.error(e.message))
-        .finally(() => {
-          loading.value = false;
-          gameReady.value = true;
-        });
-    }
 
     // Stop and start game
     watch(
       game,
       (game) => {
-        if (game.gameOn) startGameEngine(players.value, gameId, gameUserId);
+        if (game.gameOn) startGameEngine(game.players, gameId, gameUserId);
         else stopGameEngine();
       },
       { deep: true }
     );
 
     // Subscribe to game and players changes
-    let gameUnsubscribe = () => console.log("Not subscribed to", gameTableName);
-    let playersUnsubscribe = () =>
-      console.log("Not subscribed to", playersTableName);
+    let gameUnsubscribe = () =>
+      console.log("Not subscribed to", GAME_TABLE_NAME); // TODO subscribe to doc, not table
 
     watch(amTeamMember, (amTeamMember, prevAmTeamMember) => {
       if (prevAmTeamMember === amTeamMember) return;
 
       if (amTeamMember) {
         // Subscribe to game changes
-        rid
-          .tableSubscribe(
-            gameTableName,
-            { userId: gameUserId },
-            (changes: any) => {
-              //  added
-              if (changes.new_val && changes.old_val === null) {
-                console.log("added game", changes.new_val);
-              }
-              // deleted
-              if (changes.new_val === null && changes.old_val) {
-                console.log("deleted game", changes.old_val);
-              }
-              // updated
-              if (changes.new_val && changes.old_val) {
-                const updatedGame = changes.new_val;
-                console.log("updated game", updatedGame);
-                game.gameOn = updatedGame.gameOn;
-              }
+        gameTable
+          .subscribe({}, (changes: any) => {
+            //  added
+            if (changes.new_val && changes.old_val === null) {
+              console.log("added game", changes.new_val);
             }
-          )
+            // deleted
+            if (changes.new_val === null && changes.old_val) {
+              console.log("deleted game onChange", changes.old_val);
+            }
+            // updated
+            if (changes.new_val && changes.old_val) {
+              const updatedGame = changes.new_val;
+              console.log("updated game", updatedGame);
+              game.gameOn = updatedGame.gameOn;
+            }
+          })
           .then((unsubscribe) => (gameUnsubscribe = unsubscribe))
           .catch((e) => console.error(e.message));
 
-        rid
-          .tableSubscribe(
-            playersTableName,
-            { userId: gameUserId },
-            (changes: any) => {
-              //  added
-              if (changes.new_val && changes.old_val === null) {
-                const player = changes.new_val;
-                console.log("player added", player);
-                if (usePlayerExistsInState(players.value, player.id)) {
-                  console.log("Player already exists");
-                } else {
-                  players.value.push(player);
-                }
-              }
-              // deleted
-              if (changes.new_val === null && changes.old_val) {
-                const player = changes.old_val;
-                console.log("player deleted", player);
-                useRemovePlayerFromState(players.value, player.id);
-              }
-              // updated
-              if (changes.new_val && changes.old_val) {
-                const player = changes.new_val;
-                // console.log("player updated", player);
-                useUpdatePlayerInState(players.value, player);
-              }
-            }
-          )
-          .then((unsubscribe) => (playersUnsubscribe = unsubscribe))
-          .catch((e) => console.error(e.message));
+        // playersTable
+        //   .subscribe({}, (changes: any) => {
+        //     //  added
+        //     if (changes.new_val && changes.old_val === null) {
+        //       const player = changes.new_val;
+        //       console.log("player added", player);
+        //       if (usePlayerExistsInState(game.players, player.id)) {
+        //         console.log("Player already exists");
+        //       } else {
+        //         game.players.push(player);
+        //       }
+        //     }
+        //     // deleted
+        //     if (changes.new_val === null && changes.old_val) {
+        //       const player = changes.old_val;
+        //       console.log("player deleted", player);
+        //       useRemovePlayerFromState(game.players, player.id);
+        //     }
+        //     // updated
+        //     if (changes.new_val && changes.old_val) {
+        //       const player = changes.new_val;
+        //       // console.log("player updated", player);
+        //       useUpdatePlayerInState(game.players, player);
+        //     }
+        //   })
+        //   .then((unsubscribe) => (playersUnsubscribe = unsubscribe))
+        //   .catch((e) => console.error(e.message));
       }
     });
 
     // Handle navigating to different view within app only
     onUnmounted(() => {
-      useRemoveMe(players.value, gameId, gameUserId);
+      useRemoveMe(game.players, gameId, gameUserId);
       stopGameEngine();
 
       // Unsubscribe
       gameUnsubscribe();
-      playersUnsubscribe();
     });
 
     function setGameOn(status: boolean) {
       game.gameOn = status;
 
-      rid
-        .tableUpdate(gameTableName, game, { userId: gameUserId })
-        .catch((e) => console.error(e.message));
+      gameTable.update(game).catch((e) => console.error(e.message));
     }
 
     return {
       loading,
       error,
       game,
-      players,
       useAmGameCreator,
       amTeamMember,
       setGameOn,

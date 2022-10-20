@@ -1,8 +1,8 @@
-export const GAME_TABLE_SUFFIX = "_game";
-export const PLAYERS_TABLE_SUFFIX = "_players";
+export const GAME_TABLE_NAME = "games";
 
 // API error messages
-export const NO_READ_PERMISSIONS = "No read permissions";
+export const NO_READ_PERMISSIONS =
+  "No (read) permissions set for this user and this table";
 
 // API error messages regex
 export const NO_TABLE_REGEX =

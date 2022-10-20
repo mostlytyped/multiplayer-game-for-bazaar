@@ -1,6 +1,12 @@
+export interface NewGame {
+  name: string;
+}
+
 export interface Game {
   id: string;
+  name: string;
   gameOn: boolean;
+  players: Player[];
 }
 
 export interface Player {

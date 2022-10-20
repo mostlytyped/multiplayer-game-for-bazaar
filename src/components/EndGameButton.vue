@@ -1,11 +1,11 @@
 <template>
-  <button class="button is-small-text" @click="endGame">End Game</button>
+  <button class="button is-small-text" @click="endGame">Delete Game</button>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { GAME_TABLE_NAME } from "@/constants";
 import { useGetStringFromParam } from "@/composables/router-params";
-import { getGameTableName, getPlayersTableName } from "@/utils";
 import { rid } from "@/rethinkid";
 import { useRouter, useRoute } from "vue-router";
 
@@ -16,21 +16,26 @@ export default defineComponent({
     const route = useRoute();
 
     const gameId = useGetStringFromParam(route.params.gameId);
+    const gameUserId = useGetStringFromParam(route.params.userId);
 
-    const gameTableName = getGameTableName(gameId);
-    const playersTableName = getPlayersTableName(gameId);
+    const gamesTableOnCreate = async () => {
+      console.log("Table onCreate callback fired!");
+    };
+
+    const gamesTable = rid.table(GAME_TABLE_NAME, gamesTableOnCreate, {
+      userId: gameUserId,
+    });
 
     function endGame() {
       if (!window.confirm("Are you sure you want to delete this game?")) return;
 
-      rid
-        .tablesDrop(gameTableName)
+      gamesTable
+        .delete({ rowId: gameId })
         .then((r) => {
-          console.log("res drop game table", r);
-          return rid.tablesDrop(playersTableName);
+          console.log("res delete game", r);
         })
-        .catch((e) => console.error(e.message)) // maybe one or more tables already deleted
-        .finally(() => router.push({ name: "home" })); // either way, safest bet just go home
+        .catch((e) => console.error(e.message))
+        .finally(() => router.push({ name: "home" })); // in any case, safest bet just go home
     }
 
     return { endGame };
