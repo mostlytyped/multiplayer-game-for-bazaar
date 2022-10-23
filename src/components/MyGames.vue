@@ -14,9 +14,8 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import { rid } from "@/rethinkid";
+import { useGamesTable } from "@/rethinkid";
 import { getMyId } from "@/utils";
-import { GAME_TABLE_NAME } from "@/constants";
 
 export default defineComponent({
   name: "MyGames",
@@ -25,8 +24,7 @@ export default defineComponent({
 
     const myId = getMyId();
 
-    const createOn = async () => console.log("create on fired");
-    const gamesTable = rid.table(GAME_TABLE_NAME, createOn);
+    const gamesTable = useGamesTable(myId);
 
     gamesTable
       .read()

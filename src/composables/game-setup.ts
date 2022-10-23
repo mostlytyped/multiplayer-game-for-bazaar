@@ -1,8 +1,8 @@
-import { GAME_TABLE_NAME, PLAYER_SIZE, GRID_MAX, GRID_MIN } from "@/constants";
+import { PLAYER_SIZE, GRID_MAX, GRID_MIN } from "@/constants";
 import { Direction, NewGame, Player, Point, Rectangle } from "@/types";
 import { getMyId } from "@/utils";
 import getRandomProjectName from "project-name-generator";
-import { rid } from "@/rethinkid";
+import { useGamesTable } from "@/rethinkid";
 
 export function usePlayerExistsInState(players: Player[], playerId: string) {
   return players.some((p) => p.id === playerId);
@@ -28,21 +28,9 @@ export function useCreateAndGoToGame(router: any): void {
     name: getRandomProjectName().dashed,
   };
 
-  const gamesTable = rid.table(GAME_TABLE_NAME, async () => {
-    console.log("Table onCreate callback fired!");
-  });
-
-  // probably want to export the table from a module.
-  // or maybe not, here this is my ID, on GameView, it's the gameUserId
-  // maybe just use tableInsert. Or maybe we don't even use tables for games. Probably we have a 'games' table with 'game' objects
-  // players should be in game doc
-  // game object broadcasts group movements, is the game server effectively
-
-  gamesTable
+  useGamesTable(myId)
     .insert(game)
     .then((response) => {
-      console.log("response", response);
-      console.log("response.data", response.data);
       router.push({
         name: "game",
         params: { userId: myId, gameId: response.data },

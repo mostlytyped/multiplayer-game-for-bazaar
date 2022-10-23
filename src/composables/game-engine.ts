@@ -1,21 +1,17 @@
 import { ref } from "vue";
 import { Player, Point } from "@/types";
-import { PLAYER_SIZE, GRID_MAX, GRID_MIN, GAME_TABLE_NAME } from "@/constants";
-import { rid } from "@/rethinkid";
+import { PLAYER_SIZE, GRID_MAX, GRID_MIN } from "@/constants";
 import { getMyId } from "@/utils";
+import { Table } from "@mostlytyped/rethinkid-js-sdk/dist/types/table";
 
 export const useAmMoving = ref(false);
 
 const gameEngineId = ref(0);
 
-export function startGameEngine(
-  players: Player[],
-  gameId: string,
-  gameUserId: string
-) {
+export function startGameEngine(playersTable: Table, players: Player[]) {
   clearInterval(gameEngineId.value);
 
-  gameEngineId.value = gameEngine(players, gameId, gameUserId);
+  gameEngineId.value = gameEngine(playersTable, players);
 }
 
 export function stopGameEngine() {
@@ -25,12 +21,7 @@ export function stopGameEngine() {
 const frameRate = 1;
 const msPerFrame = 3000 / frameRate;
 
-function gameEngine(players: Player[], gameId: string, gameUserId: string) {
-  const createOn = async () => console.log("createOn fired");
-  const gamesTable = rid.table(GAME_TABLE_NAME, createOn, {
-    userId: gameUserId,
-  });
-
+function gameEngine(playersTable: Table, players: Player[]) {
   const myIndex = players.findIndex((p) => p.id === getMyId());
   const me = players[myIndex];
 
@@ -47,9 +38,7 @@ function gameEngine(players: Player[], gameId: string, gameUserId: string) {
 
     outOfBounds(c);
 
-    // Commit current, try do players by ID, if not revert and fetch and update
-
-    gamesTable.update({ id: gameId, players: { `${playerId}`: value }}).catch((e: any) => console.error(e.message));
+    playersTable.update(me).catch((e: any) => console.error(e.message));
   }, msPerFrame);
 }
 

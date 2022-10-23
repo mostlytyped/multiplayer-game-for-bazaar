@@ -1,4 +1,4 @@
-export const GAME_TABLE_NAME = "games";
+export const GAMES_TABLE_NAME = "games";
 
 // API error messages
 export const NO_READ_PERMISSIONS =

@@ -4,9 +4,9 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { GAME_TABLE_NAME } from "@/constants";
+import { GAMES_TABLE_NAME } from "@/constants";
 import { useGetStringFromParam } from "@/composables/router-params";
-import { rid } from "@/rethinkid";
+import { rid, useGamesTable, usePlayersTableName } from "@/rethinkid";
 import { useRouter, useRoute } from "vue-router";
 
 export default defineComponent({
@@ -18,21 +18,35 @@ export default defineComponent({
     const gameId = useGetStringFromParam(route.params.gameId);
     const gameUserId = useGetStringFromParam(route.params.userId);
 
-    const gamesTableOnCreate = async () => {
-      console.log("Table onCreate callback fired!");
-    };
-
-    const gamesTable = rid.table(GAME_TABLE_NAME, gamesTableOnCreate, {
-      userId: gameUserId,
-    });
+    const gamesTable = useGamesTable(gameUserId);
 
     function endGame() {
       if (!window.confirm("Are you sure you want to delete this game?")) return;
 
       gamesTable
         .delete({ rowId: gameId })
-        .then((r) => {
-          console.log("res delete game", r);
+        .then(() => {
+          rid
+            .tablesDrop(usePlayersTableName(gameId))
+            .catch((e) => console.error(e.message));
+
+          rid
+            .permissionsGet({ tableName: GAMES_TABLE_NAME })
+            .then((response: any) => {
+              for (const permission of response.data) {
+                if (permission.condition.rowId === gameId) {
+                  rid.permissionsDelete({ permissionId: permission.id });
+                }
+              }
+            });
+
+          rid
+            .permissionsGet({ tableName: usePlayersTableName(gameId) })
+            .then((response: any) => {
+              for (const permission of response.data) {
+                rid.permissionsDelete({ permissionId: permission.id });
+              }
+            });
         })
         .catch((e) => console.error(e.message))
         .finally(() => router.push({ name: "home" })); // in any case, safest bet just go home

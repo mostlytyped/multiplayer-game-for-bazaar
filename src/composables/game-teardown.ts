@@ -1,7 +1,6 @@
-import { rid } from "@/rethinkid";
 import { Player } from "@/types";
 import { getMyId } from "@/utils";
-import { GAME_TABLE_NAME } from "@/constants";
+import { Table } from "@mostlytyped/rethinkid-js-sdk/dist/types/table";
 
 /**
  * Remove player when they navigate away from the game view (to another view in the app)
@@ -9,26 +8,12 @@ import { GAME_TABLE_NAME } from "@/constants";
  *
  * To handle page refresh and navigating to a different site, `window.addEventListener("beforeunload", removePlayer)` doesn't work
  */
-export function useRemoveMe(
-  players: Player[],
-  gameId: string,
-  gameUserId: string
-) {
+export function useRemoveMe(playersTable: Table, players: Player[]) {
   const myId = getMyId();
 
   useRemovePlayerFromState(players, myId);
 
-  const onCreate = async () => console.log("on create fired");
-  const gameTable = rid.table(GAME_TABLE_NAME, onCreate, {
-    userId: gameUserId,
-  });
-
-  gameTable
-    .update({ id: gameId, players })
-    .then(() => {
-      console.log("deleted my user from the game", gameId);
-    })
-    .catch((e) => console.error(e.message));
+  playersTable.delete({ rowId: myId }).catch((e) => console.error(e.message));
 }
 
 export function useRemovePlayerFromState(
