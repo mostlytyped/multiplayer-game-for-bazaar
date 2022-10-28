@@ -97,7 +97,7 @@ export default defineComponent({
         .then(() => {
           useGetTeam(gameId);
         })
-        .catch((e) => console.error(e.message))
+        .catch((e: any) => console.error(e.message))
         .finally(() => {
           addToTeamText.value = addToTeamTextInitial;
           newPlayerId.value = "";

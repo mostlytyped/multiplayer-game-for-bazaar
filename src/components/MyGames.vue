@@ -32,7 +32,7 @@ export default defineComponent({
         console.log("response read games", response);
         games.value = response.data;
       })
-      .catch((e) => console.error(e.message));
+      .catch((e: any) => console.error(e.message));
 
     return { games, myId };
   },

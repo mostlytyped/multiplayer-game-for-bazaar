@@ -31,7 +31,7 @@ export function useCreateAndGoToGame(router: any): void {
 
   useGamesTable(myId)
     .insert(game)
-    .then((response) => {
+    .then((response: any) => {
       router.push({
         name: "game",
         params: { userId: myId, gameId: response.data },

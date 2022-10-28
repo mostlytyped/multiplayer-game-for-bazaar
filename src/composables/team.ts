@@ -22,5 +22,5 @@ export function useGetTeam(gameId: string) {
         }
       }
     })
-    .catch((e) => console.error(e.message));
+    .catch((e: any) => console.error(e.message));
 }

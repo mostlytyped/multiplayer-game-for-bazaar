@@ -162,7 +162,7 @@ export default defineComponent({
 
     gamesTable
       .read({ rowId: gameId })
-      .then((readGameResponse) => {
+      .then((readGameResponse: any) => {
         if (!readGameResponse) return;
 
         Object.assign(game, readGameResponse.data);
@@ -192,7 +192,7 @@ export default defineComponent({
           players.value.push(me);
 
           // Add me to database
-          playersTable.insert(me).catch((e) => console.error(e.message));
+          playersTable.insert(me).catch((e: any) => console.error(e.message));
         }
       })
       .catch((e) => {
@@ -251,8 +251,8 @@ export default defineComponent({
               game.paused = updatedGame.paused;
             }
           })
-          .then((unsubscribe) => (gameUnsubscribe = unsubscribe))
-          .catch((e) => console.error(e.message));
+          .then((unsubscribe: any) => (gameUnsubscribe = unsubscribe))
+          .catch((e: any) => console.error(e.message));
 
         playersTable
           .subscribe({}, (changes: any) => {
@@ -279,8 +279,8 @@ export default defineComponent({
               useUpdatePlayerInState(players.value, player);
             }
           })
-          .then((unsubscribe) => (playersUnsubscribe = unsubscribe))
-          .catch((e) => console.error(e.message));
+          .then((unsubscribe: any) => (playersUnsubscribe = unsubscribe))
+          .catch((e: any) => console.error(e.message));
       }
     });
 
@@ -296,20 +296,20 @@ export default defineComponent({
 
     function setGameOn(status: boolean) {
       game.starting = true;
-      gamesTable.update(game).catch((e) => console.error(e.message));
+      gamesTable.update(game).catch((e: any) => console.error(e.message));
 
       setTimeout(() => {
         game.on = status;
         game.paused = false;
         game.starting = false;
-        gamesTable.update(game).catch((e) => console.error(e.message));
+        gamesTable.update(game).catch((e: any) => console.error(e.message));
       }, 3000);
     }
 
     function togglePause() {
       game.paused = !game.paused;
       game.on = !game.paused;
-      gamesTable.update(game).catch((e) => console.error(e.message));
+      gamesTable.update(game).catch((e: any) => console.error(e.message));
     }
 
     return {

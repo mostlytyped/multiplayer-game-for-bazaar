@@ -13,7 +13,9 @@ export function useRemoveMe(playersTable: Table, players: Player[]) {
 
   useRemovePlayerFromState(players, myId);
 
-  playersTable.delete({ rowId: myId }).catch((e) => console.error(e.message));
+  playersTable
+    .delete({ rowId: myId })
+    .catch((e: any) => console.error(e.message));
 }
 
 export function useRemovePlayerFromState(

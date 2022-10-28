@@ -28,7 +28,7 @@ export default defineComponent({
         .then(() => {
           rid
             .tablesDrop(usePlayersTableName(gameId))
-            .catch((e) => console.error(e.message));
+            .catch((e: any) => console.error(e.message));
 
           rid
             .permissionsGet({ tableName: GAMES_TABLE_NAME })
@@ -48,7 +48,7 @@ export default defineComponent({
               }
             });
         })
-        .catch((e) => console.error(e.message))
+        .catch((e: any) => console.error(e.message))
         .finally(() => router.push({ name: "home" })); // in any case, safest bet just go home
     }
 
