@@ -10,7 +10,10 @@
       Waiting for at least {{ MIN_PLAYERS }} players to be able to start game
     </div>
     <div v-else>
-      <button class="button" @click="$emit('startGame')">Start Game</button>
+      <button class="button" @click="$emit('startGame')">
+        <template v-if="game.paused">Continue Game</template>
+        <template v-else>Start Game</template>
+      </button>
     </div>
   </div>
   <h3>How to invite players</h3>
@@ -27,7 +30,7 @@ import { usePlayerName } from "@/composables/game-setup";
 
 export default defineComponent({
   name: "GameCreatorDash",
-  props: ["players"],
+  props: ["players", "game"],
   emits: ["startGame"],
   components: {
     InvitePlayer,

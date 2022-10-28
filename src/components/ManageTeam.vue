@@ -9,6 +9,7 @@
         v-model="newPlayerId"
         placeholder="e.g. 5d76b11b-d0ed-4520-b451-2748c195bea5"
         spellcheck="false"
+        required
       />
       <button class="button is-small-text" type="submit">
         {{ addToTeamText }}
@@ -65,37 +66,29 @@ export default defineComponent({
 
       const permissions: Permission[] = [];
 
-      // Give the new player read permissions to the game doc in the games table
-      permissions.push({
-        tableName: GAMES_TABLE_NAME,
-        userId: newPlayerId.value,
-        type: "read",
-        condition: {
-          rowId: gameId,
-        },
-      });
-
-      // Give the new player read permissions to the whole players table
-      permissions.push({
-        tableName: usePlayersTableName(gameId),
-        userId: newPlayerId.value,
-        type: "read",
-      });
-
-      // Give the new player all other permission types only to their player doc in the players table
+      // Give all players all permissions to players table, because need to update
+      // other players when stuck together
       const myPlayerDocPermissionTypes: PermissionType[] = [
+        "read",
         "insert",
         "update",
         "delete",
       ];
       for (const type of myPlayerDocPermissionTypes) {
         permissions.push({
-          tableName: usePlayersTableName(gameId),
+          tableName: GAMES_TABLE_NAME,
           userId: newPlayerId.value,
           type,
           condition: {
-            matchUserId: "id",
+            rowId: gameId,
           },
+        });
+      }
+      for (const type of myPlayerDocPermissionTypes) {
+        permissions.push({
+          tableName: usePlayersTableName(gameId),
+          userId: newPlayerId.value,
+          type,
         });
       }
 

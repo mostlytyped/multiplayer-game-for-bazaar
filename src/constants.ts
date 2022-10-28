@@ -10,9 +10,26 @@ export const NO_TABLE_REGEX =
 
 // Game
 export const PLAYER_SIZE = 2;
+export const MOON_SIZE = 20;
 export const MIN_PLAYERS = 2;
+/**
+ * Ticks per second
+ */
+export const FRAME_RATE = 1;
+/**
+ * Distance to move per tick
+ */
+export const GRAVITY_SPEED = 6;
+/**
+ * Distance to move per 'move' action
+ */
+export const MOVE_DISTANCE = 2 * GRAVITY_SPEED;
+/**
+ * Time limit is in ticks
+ */
+export const TIME_LIMIT = 120;
 
-export const X_UNIT = "vw";
+export const X_UNIT = "vh";
 export const Y_UNIT = "vh";
 
 // Grid has bottom-left origin

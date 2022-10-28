@@ -1,43 +1,76 @@
 <template>
   <div class="game">
-    <h1 v-show="!game.gameOn">
-      Briefing room <span v-show="game.name">({{ game.name }})</span>
+    <div class="game-background"></div>
+    <h1 v-show="!game.on">
+      Mission Code Name: <span v-show="game.name">{{ game.name }}</span>
     </h1>
     <p v-if="loading">Verifying security clearance...</p>
     <div v-else-if="error">Something went wrong...</div>
     <div v-else>
-      <template v-if="!game.gameOn">
-        <HowToJoinGame v-if="!useAmGameCreator && !amTeamMember" />
-        <div v-if="!useAmGameCreator && amTeamMember">
-          Waiting for creator to start game...
+      <div class="text-overlay">
+        <div v-if="game.winner">
+          <template v-if="game.winner === me.name"
+            >The mission is a success! You landed on the moon.</template
+          >
+          <template v-else
+            >Mission failed! {{ me.name }} landed on the moon first.
+          </template>
         </div>
-        <GameCreatorDash
-          v-if="useAmGameCreator"
-          :players="players"
-          @start-game="setGameOn(true)"
-        />
-      </template>
+        <div v-else-if="game.over">
+          <h2>GAME OVER</h2>
+          <p>No one made it to the moon. The mission is a failure.</p>
+        </div>
+        <div v-else-if="game.starting">
+          Game about to start! Be the first to get to the moon.
+        </div>
+        <template v-else-if="!game.on">
+          <HowToJoinGame v-if="!useAmGameCreator && !amTeamMember" />
+          <div v-if="!useAmGameCreator && amTeamMember">
+            <template v-if="game.paused">Creator has paused the game.</template>
+            <template v-else>Waiting for creator to start game...</template>
+          </div>
+          <GameCreatorDash
+            v-if="useAmGameCreator"
+            :game="game"
+            :players="players"
+            @start-game="setGameOn(true)"
+          />
+        </template>
+      </div>
 
+      <div class="timer">Oxygen Remaining: {{ game.timeRemaining }}</div>
       <GamePlayer
         v-for="player of players"
         :key="player.id"
         :player="player"
-        :class="{ 'is-semi-transparent': !game.gameOn }"
+        :class="{ 'is-semi-transparent': !game.on }"
+      />
+      <GameMoon
+        v-if="amTeamMember"
+        :moon="game.moon"
+        :class="{ 'is-semi-transparent': !game.on }"
       />
     </div>
   </div>
 
-  <button @click="useMoveMe" class="button move-button" v-if="game.gameOn">
-    Move
+  <button
+    @click="useMoveMe"
+    class="button move-button"
+    v-if="game.on"
+    :disabled="useAmMoving"
+  >
+    <template v-if="useAmMoving">Moving...</template>
+    <template v-else>Move</template>
   </button>
 
   <div class="nav">
     <button
-      v-if="game.gameOn && useAmGameCreator"
-      @click="setGameOn(false)"
+      v-if="useAmGameCreator && game.on"
+      @click="togglePause()"
       class="button is-small-text"
     >
-      Pause Game
+      <template v-if="game.paused">Continue Game</template>
+      <template v-else>Pause Game</template>
     </button>
     <router-link class="button is-small-text" :to="{ name: 'home' }"
       >Leave Game</router-link
@@ -48,6 +81,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive, Ref, ref, watch, onUnmounted } from "vue";
+import GameMoon from "@/components/GameMoon.vue";
 import GamePlayer from "@/components/GamePlayer.vue";
 import EndGameButton from "@/components/EndGameButton.vue";
 import HowToJoinGame from "@/components/HowToJoinGame.vue";
@@ -63,20 +97,17 @@ import {
   useRemoveMe,
   useRemovePlayerFromState,
 } from "@/composables/game-teardown";
-import {
-  startGameEngine,
-  stopGameEngine,
-  useMoveMe,
-} from "@/composables/game-engine";
+import { useMoveMe, useAmMoving, GameEngine } from "@/composables/game-engine";
 import { useGamesTable, usePlayersTable } from "@/rethinkid";
 import { useRoute } from "vue-router";
-import { NO_READ_PERMISSIONS } from "@/constants";
+import { NO_READ_PERMISSIONS, TIME_LIMIT } from "@/constants";
 import { Game, Player } from "@/types";
 import { getMyId } from "@/utils";
 
 export default defineComponent({
   name: "GameView",
   components: {
+    GameMoon,
     GamePlayer,
     EndGameButton,
     HowToJoinGame,
@@ -89,30 +120,59 @@ export default defineComponent({
     const error = ref(false);
     const amTeamMember = ref(false);
     const gameReady = ref(false);
+    const me: any = reactive({});
     const game: Game = reactive({
       id: "",
       name: "",
-      gameOn: false,
+      moon: {
+        coordinates: {
+          x: -1000,
+          y: -1000,
+        },
+      },
+      on: false,
+      over: false,
+      winner: "",
+      paused: false,
+      starting: false,
+      timeRemaining: TIME_LIMIT,
     });
     const players: Ref<Player[]> = ref([]);
 
     const gameId = useGetStringFromParam(route.params.gameId);
     const gameUserId = useGetStringFromParam(route.params.userId);
 
-    if (getMyId() === route.params.userId) {
+    if (getMyId() === gameUserId) {
       console.log("I am the game owner");
     } else {
       console.log("I am a guest in this game");
     }
 
     const playersTable = usePlayersTable(gameId, gameUserId);
-
     const gamesTable = useGamesTable(gameUserId);
 
-    playersTable
-      .read()
+    const gameEngine = reactive(
+      new GameEngine({
+        gamesTable,
+        game,
+        playersTable,
+        players: players.value,
+      })
+    );
+
+    gamesTable
+      .read({ rowId: gameId })
+      .then((readGameResponse) => {
+        if (!readGameResponse) return;
+
+        Object.assign(game, readGameResponse.data);
+        gameEngine.game = game;
+
+        return playersTable.read();
+      })
       .then((response: any) => {
         players.value = response.data;
+        gameEngine.players = players.value;
 
         error.value = false;
 
@@ -123,7 +183,10 @@ export default defineComponent({
         // Don't re-add me
         if (!usePlayerExistsInState(players.value, getMyId())) {
           // Add me as a player
-          const me: Player = useInitPlayer(players.value);
+          Object.assign(
+            me,
+            useInitPlayer(players.value, gameUserId, game.moon.coordinates)
+          );
 
           // Add me to local state
           players.value.push(me);
@@ -131,13 +194,6 @@ export default defineComponent({
           // Add me to database
           playersTable.insert(me).catch((e) => console.error(e.message));
         }
-
-        return gamesTable.read({ rowId: gameId });
-      })
-      .then((readGameResponse) => {
-        if (!readGameResponse) return;
-
-        Object.assign(game, readGameResponse.data);
       })
       .catch((e) => {
         console.error(e.message);
@@ -158,8 +214,8 @@ export default defineComponent({
     watch(
       game,
       (game) => {
-        if (game.gameOn) startGameEngine(playersTable, players.value);
-        else stopGameEngine();
+        if (game.on) gameEngine.start();
+        if (!game.on) gameEngine.stop();
       },
       { deep: true }
     );
@@ -188,7 +244,11 @@ export default defineComponent({
             if (changes.new_val && changes.old_val) {
               const updatedGame = changes.new_val;
               console.log("updated game", updatedGame);
-              game.gameOn = updatedGame.gameOn;
+              game.on = updatedGame.on;
+              game.over = updatedGame.over;
+              game.winner = updatedGame.winner;
+              game.starting = updatedGame.starting;
+              game.paused = updatedGame.paused;
             }
           })
           .then((unsubscribe) => (gameUnsubscribe = unsubscribe))
@@ -215,7 +275,7 @@ export default defineComponent({
             // updated
             if (changes.new_val && changes.old_val) {
               const player = changes.new_val;
-              console.log("player updated", player);
+              // console.log("player updated", player);
               useUpdatePlayerInState(players.value, player);
             }
           })
@@ -227,7 +287,7 @@ export default defineComponent({
     // Handle navigating to different view within app only
     onUnmounted(() => {
       useRemoveMe(playersTable, players.value);
-      stopGameEngine();
+      gameEngine.stop();
 
       // Unsubscribe
       gameUnsubscribe();
@@ -235,7 +295,20 @@ export default defineComponent({
     });
 
     function setGameOn(status: boolean) {
-      game.gameOn = status;
+      game.starting = true;
+      gamesTable.update(game).catch((e) => console.error(e.message));
+
+      setTimeout(() => {
+        game.on = status;
+        game.paused = false;
+        game.starting = false;
+        gamesTable.update(game).catch((e) => console.error(e.message));
+      }, 3000);
+    }
+
+    function togglePause() {
+      game.paused = !game.paused;
+      game.on = !game.paused;
       gamesTable.update(game).catch((e) => console.error(e.message));
     }
 
@@ -247,7 +320,10 @@ export default defineComponent({
       useAmGameCreator,
       amTeamMember,
       setGameOn,
+      togglePause,
       useMoveMe,
+      useAmMoving,
+      me,
     };
   },
 });
@@ -256,6 +332,20 @@ export default defineComponent({
 <style lang="scss">
 .game {
   padding: 1em;
+  overflow-y: auto;
+  position: absolute;
+  top: 17px;
+  bottom: 37px;
+}
+
+.game-background {
+  background-color: #333;
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 100vh;
+  z-index: -1;
 }
 
 .team {
@@ -266,5 +356,16 @@ export default defineComponent({
   position: fixed;
   bottom: 3px;
   left: 3px;
+}
+
+.timer {
+  position: fixed;
+  top: 3px;
+  left: 3px;
+}
+
+.text-overlay {
+  position: relative;
+  z-index: 100;
 }
 </style>

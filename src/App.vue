@@ -75,6 +75,7 @@ body {
   padding: 6px 12px;
   font-size: 16px;
   text-decoration: none;
+  text-transform: uppercase;
   transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
     border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }

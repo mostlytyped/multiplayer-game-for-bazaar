@@ -48,7 +48,7 @@ export default defineComponent({
 <style scoped lang="scss">
 .player {
   position: fixed;
-  transition: all 3s linear; // if time matches frame rate = linear animation
+  transition: all 1s linear; // if time matches frame rate = linear animation
   // position set with inline styles
 }
 

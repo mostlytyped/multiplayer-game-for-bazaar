@@ -1,5 +1,5 @@
-import { PLAYER_SIZE, GRID_MAX, GRID_MIN } from "@/constants";
-import { Direction, NewGame, Player, Point, Rectangle } from "@/types";
+import { PLAYER_SIZE, GRID_MAX, GRID_MIN, MOON_SIZE } from "@/constants";
+import { NewGame, Player, Point, Rectangle, Moon, Direction } from "@/types";
 import { getMyId } from "@/utils";
 import getRandomProjectName from "project-name-generator";
 import { useGamesTable } from "@/rethinkid";
@@ -26,6 +26,7 @@ export function useCreateAndGoToGame(router: any): void {
 
   const game: NewGame = {
     name: getRandomProjectName().dashed,
+    moon: useInitMoon(),
   };
 
   useGamesTable(myId)
@@ -39,8 +40,8 @@ export function useCreateAndGoToGame(router: any): void {
     .catch((e: any) => console.error(e.message));
 }
 
-function getRandomPlayerName(): string {
-  const playerNames = [
+function getRandomPlayerName(players: Player[]): string {
+  const names = [
     "Luke",
     "C3PO",
     "R2D2",
@@ -54,7 +55,7 @@ function getRandomPlayerName(): string {
     "Ender",
     "Hiro",
     "YT",
-    "Han",
+    "Starbuck",
     "Solo",
     "Maul",
     "Boba",
@@ -62,25 +63,21 @@ function getRandomPlayerName(): string {
     "Loki",
   ];
 
-  const index = getRandomInt(playerNames.length - 1);
+  // Remove already in use names
+  for (const player of players) {
+    const index = names.indexOf(player.name);
+    if (index > -1) names.splice(index, 1);
+  }
 
-  return playerNames[index];
+  const index = getRandomInt(names.length - 1);
+
+  return names[index];
 }
 
-// Temp func, will delete
-// function genQuickPlayer(players: Player[], index: number): Player {
-//   return {
-//     id: getRandomProjectName().dashed,
-//     name: getRandomPlayerName(),
-//     coordinates: getPlayerStartPointNoOverlap(players),
-//     gravityDirection: getGravityDirection(index),
-//   };
-// }
-
-function getPlayerStartPoint(): Point {
+function getSpriteStartPoint(size: number = PLAYER_SIZE): Point {
   // Add padding to avoid touching viewport sides
-  const max = GRID_MAX - PLAYER_SIZE * 2;
-  const min = GRID_MIN + PLAYER_SIZE;
+  const max = GRID_MAX - size * 2;
+  const min = GRID_MIN + size;
   const x = getRandomInt(max, min);
   const y = getRandomInt(max, min);
 
@@ -88,56 +85,87 @@ function getPlayerStartPoint(): Point {
 }
 
 // Recursive
-function getPlayerStartPointNoOverlap(players: Player[]): Point {
-  const point = getPlayerStartPoint();
-  const myRectangle = useGetRectangleFromPoint(point, PLAYER_SIZE);
+function getPlayerStartPoint(
+  players: Player[],
+  moonCoordinates: Point,
+  gravityDirection: Direction
+): Point {
+  const point = getSpriteStartPoint();
+  const myRectangle = useGetRectangleFromPoint(point);
 
   // Make sure my hit box does not overlap with an existing player
-  for (const id in players) {
-    const rectangle = useGetRectangleFromPoint(
-      players[id].coordinates,
-      PLAYER_SIZE
-    );
+  for (const player of players) {
+    const rectangle = useGetRectangleFromPoint(player.coordinates);
 
     // If rectangles overlaps, recursively try again with a new point
-    if (checkDoRectanglesOverlap(myRectangle, rectangle)) {
-      // console.log("overlap: ", player.id);
-      return getPlayerStartPointNoOverlap(players);
+    if (useCheckDoRectanglesOverlap(myRectangle, rectangle)) {
+      return getPlayerStartPoint(players, moonCoordinates, gravityDirection);
     }
+  }
+
+  // Check not on a collision course with the moon
+  // (otherwise the player would just bump right into the moon and win)
+  if (checkWillCollideWithMoon(point, moonCoordinates, gravityDirection)) {
+    return getPlayerStartPoint(players, moonCoordinates, gravityDirection);
   }
 
   return point;
 }
 
-export function useInitPlayer(players: Player[]): Player {
-  // Temp add extra players
-  // for (let i = 0; i < 20; i++) {
-  //   players.push(genQuickPlayer(players, i));
-  // }
-
-  const coordinates = getPlayerStartPointNoOverlap(players);
-
-  const index = Object.keys(players).length;
-
+export function useInitMoon(): Moon {
   return {
-    id: getMyId(),
-    name: getRandomPlayerName(),
-    coordinates,
-    gravityDirection: getGravityDirection(index),
+    coordinates: getSpriteStartPoint(MOON_SIZE),
   };
 }
 
-function getGravityDirection(index: number): number {
-  // Numeric enum has keys for numbers and member names,
-  // so two keys per direction, hence we want half of the
-  // keys to get the number of directions
-  const numberOfDirections = Object.keys(Direction).length / 2;
+export function useInitPlayer(
+  players: Player[],
+  gameUserId: string,
+  moonCoordinates: Point
+): Player {
+  const gravityDirection = getGravityDirection(players);
+  const coordinates = getPlayerStartPoint(
+    players,
+    moonCoordinates,
+    gravityDirection
+  );
 
-  // Assign index evenly according to player index
-  return index % numberOfDirections;
+  return {
+    id: getMyId(),
+    name: getRandomPlayerName(players),
+    isCreator: getMyId() === gameUserId,
+    coordinates,
+    gravityDirection,
+    combinedMomentum: {
+      x: 0,
+      y: 0,
+    },
+    stuckIds: [],
+  };
 }
 
-function checkDoRectanglesOverlap(a: Rectangle, b: Rectangle): boolean {
+function getGravityDirection(players: Player[]): Direction {
+  if (players.length === 0) {
+    return 0;
+  }
+
+  // Tuple: up, right, down, left
+  const counts: number[] = [0, 0, 0, 0];
+
+  for (const player of players) {
+    counts[player.gravityDirection]++;
+  }
+
+  const min = Math.min(...counts);
+  const leastUsedDirection = counts.indexOf(min);
+
+  return leastUsedDirection;
+}
+
+export function useCheckDoRectanglesOverlap(
+  a: Rectangle,
+  b: Rectangle
+): boolean {
   // if beside each other
   if (a.x2 < b.x1 || b.x2 < a.x1) return false;
 
@@ -155,7 +183,7 @@ function checkDoRectanglesOverlap(a: Rectangle, b: Rectangle): boolean {
  */
 export function useGetRectangleFromPoint(
   { x, y }: Point,
-  size: number
+  size: number = PLAYER_SIZE
 ): Rectangle {
   // Set square coordinates
   let x2 = x + size;
@@ -166,6 +194,28 @@ export function useGetRectangleFromPoint(
   if (y2 > GRID_MAX) y2 = GRID_MAX;
 
   return { x1: x, y1: y, x2, y2 };
+}
+
+function checkWillCollideWithMoon(
+  playerCoordinates: Point,
+  moonCoordinates: Point,
+  gravityDirection: Direction
+): boolean {
+  const p = useGetRectangleFromPoint(playerCoordinates);
+  const m = useGetRectangleFromPoint(moonCoordinates, MOON_SIZE);
+
+  let axis = "x";
+  if (gravityDirection === 0 || gravityDirection === 2) {
+    axis = "y";
+  }
+
+  if (axis === "x") {
+    if (p.y2 > m.y1 && p.y1 < m.y2) return true;
+  } else {
+    if (p.x2 > m.x1 && p.x1 < m.x2) return true;
+  }
+
+  return false;
 }
 
 export function usePlayerName(player: Player) {

@@ -27,7 +27,7 @@
 
 <script lang="ts">
 import { defineComponent, computed } from "vue";
-import { PLAYER_SIZE, X_UNIT, Y_UNIT } from "@/constants";
+import { X_UNIT, Y_UNIT } from "@/constants";
 import { useGetRectangleFromPoint } from "@/composables/game-setup";
 
 export default defineComponent({
@@ -35,7 +35,7 @@ export default defineComponent({
   props: ["coordinates"],
   setup(props) {
     const hitBox = computed(() => {
-      const hitBox = useGetRectangleFromPoint(props.coordinates, PLAYER_SIZE);
+      const hitBox = useGetRectangleFromPoint(props.coordinates);
 
       return hitBox;
     });
