@@ -163,6 +163,8 @@ export default defineComponent({
     gamesTable
       .read({ rowId: gameId })
       .then((response: any) => {
+        console.log("get games response", response);
+
         if (!response) {
           console.log("Got game read response, but was null");
           throw new Error("Got game read response, but was null");
@@ -173,21 +175,14 @@ export default defineComponent({
 
         return playersTable.read();
       })
-      .catch((e) => {
-        console.log("Get game error");
-        console.error(e.message);
-
-        if (e.message === NO_READ_PERMISSIONS) {
-          // User is a guest, not yet a team member, not an error
-          amTeamMember.value = false;
-        } else {
-          error.value = true;
-        }
-      })
       .then((response: any) => {
+        console.log("get players response", response);
+
         if (!response) {
-          console.log("Got players response, but was null");
-          throw new Error("Got players response, but was null");
+          console.log(
+            "Got players response, but was null, assume permissions error"
+          );
+          throw new Error(NO_READ_PERMISSIONS);
         }
 
         players.value = response.data;
