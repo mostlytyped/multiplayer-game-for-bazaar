@@ -162,10 +162,13 @@ export default defineComponent({
 
     gamesTable
       .read({ rowId: gameId })
-      .then((readGameResponse: any) => {
-        if (!readGameResponse) return;
+      .then((response: any) => {
+        if (!response) {
+          console.log("Got game read response, but was null");
+          throw new Error("Got game read response, but was null");
+        }
 
-        Object.assign(game, readGameResponse.data);
+        Object.assign(game, response.data);
         gameEngine.game = game;
 
         return playersTable.read();
@@ -182,6 +185,11 @@ export default defineComponent({
         }
       })
       .then((response: any) => {
+        if (!response) {
+          console.log("Got players response, but was null");
+          throw new Error("Got players response, but was null");
+        }
+
         players.value = response.data;
         gameEngine.players = players.value;
 
