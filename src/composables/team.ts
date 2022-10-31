@@ -17,7 +17,7 @@ export function useGetTeam(gameId: string) {
     })
     .then((response: any) => {
       for (const permission of response.data) {
-        if (permission.condition.rowId === gameId) {
+        if (permission.condition?.rowId === gameId) {
           useTeam.value.push(permission);
         }
       }
