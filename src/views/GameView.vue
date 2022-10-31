@@ -170,6 +170,17 @@ export default defineComponent({
 
         return playersTable.read();
       })
+      .catch((e) => {
+        console.log("Get game error");
+        console.error(e.message);
+
+        if (e.message === NO_READ_PERMISSIONS) {
+          // User is a guest, not yet a team member, not an error
+          amTeamMember.value = false;
+        } else {
+          error.value = true;
+        }
+      })
       .then((response: any) => {
         players.value = response.data;
         gameEngine.players = players.value;
@@ -196,6 +207,7 @@ export default defineComponent({
         }
       })
       .catch((e) => {
+        console.log("Get players error");
         console.error(e.message);
 
         if (e.message === NO_READ_PERMISSIONS) {
