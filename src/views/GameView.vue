@@ -13,7 +13,7 @@
             >The mission is a success! You landed on the moon.</template
           >
           <template v-else
-            >Mission failed! {{ me.name }} landed on the moon first.
+            >Mission failed! {{ game.winner }} landed on the moon first.
           </template>
         </div>
         <div v-else-if="game.over">
