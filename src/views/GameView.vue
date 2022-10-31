@@ -166,8 +166,10 @@ export default defineComponent({
         console.log("get games response", response);
 
         if (!response) {
-          console.log("Got game read response, but was null");
-          throw new Error("Got game read response, but was null");
+          console.log(
+            "Got game read response, but was null, assume permissions error"
+          );
+          throw new Error(NO_READ_PERMISSIONS);
         }
 
         Object.assign(game, response.data);
