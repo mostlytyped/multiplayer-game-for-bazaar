@@ -5,7 +5,7 @@
       <li v-for="game in games" :key="game.id">
         <router-link
           :to="{ name: 'game', params: { userId: myId, gameId: game.id } }"
-          >{{ game.name }}</router-link
+          >{{ game.name }} - {{ game.id }}</router-link
         >
       </li>
     </ul>
@@ -13,8 +13,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
-import { useGamesTable } from "@/rethinkid";
+import { defineComponent, Ref, ref } from "vue";
+import { useGamesCollection } from "@/bzr";
 import { getMyId } from "@/utils";
 
 export default defineComponent({
@@ -22,21 +22,31 @@ export default defineComponent({
   setup() {
     let games: any = ref([]);
 
-    const myId = getMyId();
+    const myId: Ref<string> = ref(getMyId());
 
-    const gamesTable = useGamesTable(myId);
+    const gamesCollection = useGamesCollection();
 
-    gamesTable
-      .read()
-      .then((response: any) => {
-        console.log("response read games", response);
-        games.value = response.data;
+    gamesCollection
+      .getAll()
+      .then((fetchedGames: any) => {
+        console.log("fetched games", fetchedGames);
+        games.value = fetchedGames;
       })
-      .catch((e: any) => console.error(e.message));
+      .catch((e: any) => {
+        console.error(e.type);
+        console.error(e.message);
+        console.error(e);
+      });
 
     return { games, myId };
   },
 });
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.my-games-list {
+  a {
+    color: yellow;
+  }
+}
+</style>

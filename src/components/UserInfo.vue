@@ -4,7 +4,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import { rid } from "@/rethinkid";
+import { bzr } from "@/bzr";
 
 export default defineComponent({
   name: "UserInfo",
@@ -12,10 +12,11 @@ export default defineComponent({
     const email = ref("");
     const id = ref("");
 
-    if (rid.isLoggedIn()) {
-      const me = rid.userInfo();
-      if (me?.email) email.value = me.email;
-      if (me?.id) id.value = me.id;
+    if (bzr.isLoggedIn()) {
+      bzr.social.getUser().then((user) => {
+        email.value = user.email || "";
+        id.value = user.id;
+      });
     }
 
     return { email, id };

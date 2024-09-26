@@ -1,6 +1,6 @@
 import { Player } from "@/types";
 import { getMyId } from "@/utils";
-import { Table } from "@mostlytyped/rethinkid-js-sdk/dist/types/table";
+import { CollectionAPI } from "@bzr/bazaar";
 
 /**
  * Remove player when they navigate away from the game view (to another view in the app)
@@ -8,14 +8,15 @@ import { Table } from "@mostlytyped/rethinkid-js-sdk/dist/types/table";
  *
  * To handle page refresh and navigating to a different site, `window.addEventListener("beforeunload", removePlayer)` doesn't work
  */
-export function useRemoveMe(playersTable: Table, players: Player[]) {
+export function useRemoveMe(
+  playersCollection: CollectionAPI<Player>,
+  players: Player[]
+) {
   const myId = getMyId();
 
   useRemovePlayerFromState(players, myId);
 
-  playersTable
-    .delete({ rowId: myId })
-    .catch((e: any) => console.error(e.message));
+  playersCollection.deleteOne(myId).catch((e: any) => console.error(e.message));
 }
 
 export function useRemovePlayerFromState(

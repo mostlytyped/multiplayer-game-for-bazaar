@@ -1,4 +1,4 @@
-export const GAMES_TABLE_NAME = "games";
+export const GAMES_COLLECTION_NAME = "games";
 
 // API error messages
 export const NO_READ_PERMISSIONS =
@@ -35,3 +35,5 @@ export const Y_UNIT = "vh";
 // Grid has bottom-left origin
 export const GRID_MIN = 0;
 export const GRID_MAX = 100;
+
+export const LOCAL_STORAGE_NAME_MY_ID = "myId";

@@ -1,6 +1,5 @@
-import { rid } from "@/rethinkid";
+import { LOCAL_STORAGE_NAME_MY_ID } from "./constants";
 
 export function getMyId(): string {
-  const me = rid.userInfo();
-  return me && me.id ? me.id : "";
+  return localStorage.getItem(LOCAL_STORAGE_NAME_MY_ID) || "";
 }

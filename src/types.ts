@@ -1,14 +1,25 @@
-import { Table } from "@mostlytyped/rethinkid-js-sdk/dist/types/table";
+import { CollectionAPI } from "@bzr/bazaar";
 
 export interface NewGame {
   name: string;
   moon: Moon;
+  teamIds: string[]; // matchUserId array
+  on: boolean;
+  over: boolean;
+  /**
+   * Winning player's name
+   */
+  winner: string;
+  paused: boolean;
+  starting: boolean;
+  timeRemaining: number;
 }
 
 export interface Game {
   id: string;
   name: string;
   moon: Moon;
+  teamIds: string[]; // matchUserId array
   on: boolean;
   over: boolean;
   /**
@@ -25,9 +36,9 @@ export interface Moon {
 }
 
 export interface GameEngineOptions {
-  gamesTable: Table;
+  gamesCollection: CollectionAPI;
   game: Game;
-  playersTable: Table;
+  playersCollection: CollectionAPI;
   players: Player[];
 }
 

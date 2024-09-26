@@ -2,7 +2,7 @@ import { PLAYER_SIZE, GRID_MAX, GRID_MIN, MOON_SIZE } from "@/constants";
 import { NewGame, Player, Point, Rectangle, Moon, Direction } from "@/types";
 import { getMyId } from "@/utils";
 import getRandomProjectName from "project-name-generator";
-import { useGamesTable } from "@/rethinkid";
+import { useGamesCollection } from "@/bzr";
 
 export function usePlayerExistsInState(players: Player[], playerId: string) {
   return players.some((p) => p.id === playerId);
@@ -21,23 +21,20 @@ function getRandomInt(max: number, min = 0) {
   return Math.floor(Math.random() * range + min);
 }
 
-export function useCreateAndGoToGame(router: any): void {
-  const myId = getMyId();
-
-  const game: NewGame = {
+export async function useCreateGame(): Promise<string> {
+  const newGame: NewGame = {
     name: getRandomProjectName().dashed,
     moon: useInitMoon(),
+    teamIds: [],
+    on: false,
+    over: false,
+    winner: "",
+    paused: false,
+    starting: false,
+    timeRemaining: 0,
   };
 
-  useGamesTable(myId)
-    .insert(game)
-    .then((response: any) => {
-      router.push({
-        name: "game",
-        params: { userId: myId, gameId: response.data },
-      });
-    })
-    .catch((e: any) => console.error(e.message));
+  return useGamesCollection().insertOne(newGame);
 }
 
 function getRandomPlayerName(players: Player[]): string {

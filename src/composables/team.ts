@@ -1,6 +1,6 @@
 import { ref } from "vue";
-import { rid } from "@/rethinkid";
-import { GAMES_TABLE_NAME } from "@/constants";
+import { useGamesCollection } from "@/bzr";
+import { getMyId } from "@/utils";
 
 export const useTeam: any = ref([]);
 
@@ -10,17 +10,13 @@ export const useTeam: any = ref([]);
 export function useGetTeam(gameId: string) {
   useTeam.value = [];
 
-  rid
-    .permissionsGet({
-      tableName: GAMES_TABLE_NAME,
-      type: "read",
-    })
+  // TODO Get teamIDs from games doc
+  const myId = getMyId();
+
+  useGamesCollection(myId)
+    .getOne(gameId)
     .then((response: any) => {
-      for (const permission of response.data) {
-        if (permission.condition?.rowId === gameId) {
-          useTeam.value.push(permission);
-        }
-      }
-    })
-    .catch((e: any) => console.error(e.message));
+      console.log("read game res (check for team Ids)", response);
+      if (response.teamIds) useTeam.value = response.teamIds;
+    });
 }

@@ -4,9 +4,8 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { GAMES_TABLE_NAME } from "@/constants";
 import { useGetStringFromParam } from "@/composables/router-params";
-import { rid, useGamesTable, usePlayersTableName } from "@/rethinkid";
+import { bzr, useGamesCollection, usePlayersCollectionName } from "@/bzr";
 import { useRouter, useRoute } from "vue-router";
 
 export default defineComponent({
@@ -18,35 +17,35 @@ export default defineComponent({
     const gameId = useGetStringFromParam(route.params.gameId);
     const gameUserId = useGetStringFromParam(route.params.userId);
 
-    const gamesTable = useGamesTable(gameUserId);
+    const gamesCollection = useGamesCollection(gameUserId);
 
     function endGame() {
       if (!window.confirm("Are you sure you want to delete this game?")) return;
 
-      gamesTable
-        .delete({ rowId: gameId })
+      gamesCollection
+        .deleteOne(gameId)
         .then(() => {
-          rid
-            .tablesDrop(usePlayersTableName(gameId))
+          bzr.collections
+            .drop(usePlayersCollectionName(gameId))
             .catch((e: any) => console.error(e.message));
 
-          rid
-            .permissionsGet({ tableName: GAMES_TABLE_NAME })
-            .then((response: any) => {
-              for (const permission of response.data) {
-                if (permission.condition.rowId === gameId) {
-                  rid.permissionsDelete({ permissionId: permission.id });
-                }
-              }
-            });
+          // bzr
+          //   .permissionsGet({ tableName: GAMES_COLLECTION_NAME })
+          //   .then((response: any) => {
+          //     for (const permission of response) {
+          //       if (permission.condition.rowId === gameId) {
+          //         bzr.permissionsDelete({ permissionId: permission.id });
+          //       }
+          //     }
+          //   });
 
-          rid
-            .permissionsGet({ tableName: usePlayersTableName(gameId) })
-            .then((response: any) => {
-              for (const permission of response.data) {
-                rid.permissionsDelete({ permissionId: permission.id });
-              }
-            });
+          // bzr
+          //   .permissionsGet({ tableName: usePlayersCollectionName(gameId) })
+          //   .then((response: any) => {
+          //     for (const permission of response) {
+          //       bzr.permissionsDelete({ permissionId: permission.id });
+          //     }
+          //   });
         })
         .catch((e: any) => console.error(e.message))
         .finally(() => router.push({ name: "home" })); // in any case, safest bet just go home

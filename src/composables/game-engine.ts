@@ -23,15 +23,15 @@ export class GameEngine {
   id = 0;
   msPerFrame = 1000 / FRAME_RATE;
 
-  gamesTable;
+  gamesCollection;
   game;
-  playersTable;
+  playersCollection;
   players;
 
   constructor(options: GameEngineOptions) {
-    this.gamesTable = options.gamesTable;
+    this.gamesCollection = options.gamesCollection;
     this.game = options.game;
-    this.playersTable = options.playersTable;
+    this.playersCollection = options.playersCollection;
     this.players = options.players;
   }
 
@@ -85,16 +85,16 @@ export class GameEngine {
         }
 
         // Update player I touched. My player will update at end of tick
-        this.playersTable
-          .update(player)
+        this.playersCollection
+          .updateOne(player.id, player)
           .catch((e: any) => console.error(e.message));
       }
     }
   }
 
   updateGame(): void {
-    this.gamesTable
-      .update(this.game)
+    this.gamesCollection
+      .updateOne(this.game.id, this.game)
       .catch((e: any) => console.error(e.message));
   }
 
@@ -132,7 +132,9 @@ export class GameEngine {
 
     this.outOfBounds();
 
-    this.playersTable.update(me).catch((e: any) => console.error(e.message));
+    this.playersCollection
+      .updateOne(me.id, me)
+      .catch((e: any) => console.error(e.message));
   }
 
   timer(): void {
